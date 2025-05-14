@@ -1,0 +1,75 @@
+﻿@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
+@using WebUI
+@using WebUI.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using Application.DTO.Request.Identity
+@using Application.Service.Identity
+@using Microsoft.AspNetCore.Authorization
+@using WebUI.Components.Layout.Identity
+@using NetcodeHub.Packages.UI.Templates.Breeze
+@using WebUI.Components.Layout
+@using WebUI.Components.Layout.Navigationbar
+@using WebUI.Components.Layout.Sidebar
+@using NetcodeHub.Packages.Components.Toast
+@using WebUI.Components.Pages.Content
+@using Microsoft.AspNetCore.SignalR.Client
+@using Application.DTO.Request.ActivityTracker
+@using Application.Extension
+@using System.Security.Claims
+@using WebUI.Hubs
+@using WebUI.States
+@using WebUI.States.Administration
+@using WebUI.States.User
+@using NetcodeHub.Packages.Components
+@using NetcodeHub.Packages.Components.BreadCrumb
+@using NetcodeHub.Packages.Components.Validations.OnInput
+@using WebUI.Components.Pages.General
+@using Syncfusion.Blazor.Notifications
+@using Application.DTO.Response.Identity
+@using Mapster
+@using MudBlazor
+@using NetcodeHub.Packages.Components.Modal
+@using Application.DTO.Response.ActivityTracker
+@using Application.DTO.Response.Products
+@using NetcodeHub.Packages.Components.FileUpload
+@using Application.DTO.Request.Products
+@using Microsoft.Extensions.DependencyInjection
+@using MediatR
+@using Application.Service.Products.Queries.Categories
+@using Application.Service.Products.Queries.Locations
+@using Application.Service.Products.Queries.Products
+@using Application.DTO.Response
+@using Application.Service.Products.Commands.Products
+@using Application.Service.Products.Commands.Categories
+@using NetcodeHub.Packages.Components.DataGrid
+@using Application.Service.Products.Commands.Locations
+@using Application.DTO.Response.Orders
+@using Application.DTO.Request.Orders
+@using Application.Service.Products.Commands.Orders
+@using Application.Service.Orders
+
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.DropDowns
+
+@attribute [AllowAnonymous]
+@inject NavigationManager navManager
+@inject IJSRuntime js
+@inject IAccountService accountService
+@inject ICustomAuthorizationService customAuthorizationService
+@inject ChangePasswordState passwordState
+@inject GenericHomeHeaderState homeGenericState
+@inject NetcodeHubConnectionService netcodeHubConnectionService
+@inject AdminActiveOrderCountState adminActiveOrderCountState
+@inject UserActiveOrderCountState userActiveOrderCountState
+@attribute [Authorize(Policy="AdministrationPolicy")]
+@inject IServiceProvider serviceProvider
+@inject SfDialogService  dialogService 

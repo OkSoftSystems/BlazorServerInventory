@@ -1,0 +1,187 @@
+﻿
+<SfDialog Width="350px" IsModal="true" ShowCloseIcon="true" @bind-Visible="IsVisible">
+	<DialogEvents OnOpen="OpenDialog"></DialogEvents>
+	<DialogTemplates>
+		<Header>@Title Product</Header>
+		<Content>
+			<EditForm Model="ProductModel" Enhance OnSubmit="Save">
+				<div class="card border-success">
+					<div class="card-body">
+						<div class="form-group">
+							<label class="form-label">Product Name</label>
+							<InputText @bind="ProductModel.Name" class="form-control" disabled />
+						</div>
+						<div class="form-group mt-2">
+							<label class="form-label">SNo</label>
+							<InputText @bind-Value="ProductModel.SerialNumber" class="form-control" />
+						</div>
+						<div class="form-group mt-2">
+							<label class="form-label">Price</label>
+							<InputNumber @bind-Value="ProductModel.Price" class="form-control" />
+						</div>
+						<div class="form-group mt-2">
+							<label class="form-label">Quantity</label>
+							<input value="@ProductModel.Quantity" class="form-control" disabled />
+						</div>
+						<div class="form-group mt-2">
+							<label class="form-label">Description</label>
+							<InputText @bind-Value="ProductModel.Description" class="form-control" />
+						</div>
+						@* <div class="form-group">
+							<NetcodeHubFileUpload @ref="FileUploadComponent" Notify="RetrieveContent" RequiredExtensions="RequiredEx" />
+						</div> *@
+						<div class="form-group mt-2">
+							<label class="form-label">Select Type</label>
+
+							@if (Categories != null)
+							{
+								@if (SelectedProduct.Id == Guid.Empty)
+								{
+									string selected = ProductModel.CategoryId != Guid.Empty
+									? Categories.FirstOrDefault(c => c.Id == ProductModel.CategoryId)?.Name ?? "Select Type"
+									: "Select Type";
+									<SfDropDownList TValue="Guid" TItem="GetCategoryResponseDTO" Placeholder="@selected" DataSource="Categories">
+										<DropDownListFieldSettings Value="Id" Text="Name"></DropDownListFieldSettings>
+										<DropDownListEvents TValue="Guid" TItem="GetCategoryResponseDTO" ValueChange="OnCategoryValueChange"></DropDownListEvents>
+									</SfDropDownList>
+								}
+								@* else
+								{
+									<SfDropDownList TValue="Guid" TItem="GetCategoryResponseDTO" Placeholder="Select Type" DataSource="Categories">
+										<DropDownListFieldSettings Value="Id" Text="Name"></DropDownListFieldSettings>
+										<DropDownListEvents TValue="Guid" TItem="GetCategoryResponseDTO" ValueChange="OnCategoryValueChange"></DropDownListEvents>
+									</SfDropDownList>
+								} *@
+									
+							}
+							
+						</div>
+						<div class="form-group mt-2">
+							<label class="form-label">Select Type</label>
+
+							@if (Locations != null)
+							{
+								@if (SelectedProduct.Id == Guid.Empty)
+								{
+
+									string selected = ProductModel.LocationId != Guid.Empty
+									? Locations.FirstOrDefault(c => c.Id == ProductModel.LocationId)?.Name ?? "Select Type"
+									: "Select Type";
+									<SfDropDownList TValue="Guid" TItem="GetLocationResponseDTO" Placeholder="@selected" DataSource="Locations">
+										<DropDownListFieldSettings Value="Id" Text="Name"></DropDownListFieldSettings>
+										<DropDownListEvents TValue="Guid" TItem="GetLocationResponseDTO" ValueChange="OnLocationValueChange"></DropDownListEvents>
+									</SfDropDownList>
+								}
+								@* else
+								{
+									<SfDropDownList TValue="Guid" TItem="GetLocationResponseDTO" Placeholder="Select Type" DataSource="Locations">
+										<DropDownListFieldSettings Value="Id" Text="Name"></DropDownListFieldSettings>
+										<DropDownListEvents TValue="Guid" TItem="GetLocationResponseDTO" ValueChange="OnLocationValueChange"></DropDownListEvents>
+									</SfDropDownList>
+								} *@
+
+							}
+
+						</div>
+						<div class="form-group mt-3">
+							@if (Loading)
+							{
+								<GenericSpinnerButton Text="Saving Product..." ButtonClass="btn btn-primary" />
+							}
+							else
+							{
+								@if (ProductModel.Base64Image != null)
+								{
+									<img width="50" height="50" style="border-radius:100%" src="@ProductModel.Base64Image" class="float-start" />
+								}
+							}
+							<button type="submit" class="btn btn-primary float-end">Save Product</button>
+						</div>
+						<div class="form-group mt-2">
+							@if (Errors != "")
+							{
+								@Errors
+							}
+							else
+							{
+								<ValidationSummary />
+							}
+						</div>
+					</div>
+				</div>
+			</EditForm>
+		</Content>
+	</DialogTemplates>
+	<DialogButtons>
+		<DialogButton Content="SAVE" Type="Syncfusion.Blazor.Popups.ButtonType.Submit" IsPrimary="true" OnClick="Save" />
+	</DialogButtons>	
+</SfDialog>
+
+@code {
+
+	[Parameter] public AddProductRequestDTO ProductModel { get; set; } = new();
+	[Parameter] public IEnumerable<GetProductResponseDTO> Products { get; set; } = [];
+	List<string> RequiredEx = [".jpg", "png"];
+	[Parameter] public IEnumerable<GetCategoryResponseDTO> Categories { get; set; } = [];
+	[Parameter] public IEnumerable<GetLocationResponseDTO> Locations { get; set; } = [];
+	[Parameter] public EventCallback<AddProductRequestDTO> HandleSaveOperationEvent { get; set; }
+	private GetProductResponseDTO SelectedProduct { get; set; } = new();
+	NetcodeHubFileUpload? FileUploadComponent;
+	public bool Loading { get; set; } = false;
+	[Parameter] public bool IsVisible { get; set; } = false;
+	public string Title { get; set; } = "Add";
+	string Errors = "";
+
+	private async void Save()
+	{
+		if (ProductModel.CategoryId == Guid.Empty)
+			await dialogService.AlertAsync("You need to provide product category.", "Alert!");
+
+		if (ProductModel.LocationId == Guid.Empty)
+			await dialogService.AlertAsync("You need to provide product location.", "Alert!");
+
+		else
+			await HandleSaveOperationEvent.InvokeAsync(ProductModel);
+	}
+
+	public void OpenDialog()
+	{
+		IsVisible = true;
+		StateHasChanged();
+	}
+
+	public void CloseDialog()
+	{
+		IsVisible = false;
+		StateHasChanged();
+	}
+
+	public void OnCategoryValueChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<Guid, GetCategoryResponseDTO> args)
+	{
+		ProductModel.CategoryId = Guid.Parse(args.Value!.ToString());
+	}
+
+	public void OnLocationValueChange(ChangeEventArgs<Guid, GetLocationResponseDTO> args)
+	{
+		ProductModel.LocationId = Guid.Parse(args.Value!.ToString());
+	}
+
+	public void ChangeTitle(string title)
+	{
+		Title = title;
+	}
+
+	
+
+	void RetrieveContent(FileModel? incomingFile)
+	{
+		if (incomingFile is null) return;
+		foreach (var file in incomingFile!.IBrowserFiles!)
+		{
+			var getFileNameAndBase4 = incomingFile.BaseFiles!.FirstOrDefault(_ => _.Key.Equals(file.Name, StringComparison.OrdinalIgnoreCase));
+			if (getFileNameAndBase4.Key != null)
+				ProductModel.Base64Image = getFileNameAndBase4.Value;
+		}
+	}
+	
+}

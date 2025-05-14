@@ -1,0 +1,484 @@
+﻿@page "/app/products/all-products-with-quantity-left/manage"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdministrationPolicy")]
+@implements IDisposable
+<PageTitle>Products</PageTitle>
+
+<TwoSectionsTemplate>
+	<Col12Template>
+		<AdminHomeHeader />
+		<NetcodeHubBreadCrumb BreadCrumbs="BreadCrumbs" BackgroundColor="@BreadCrumbBackgroundColor.Success()" DeactivatedColor="@BreadCrumbColor.Primary()" ActivatedColor="@BreadCrumbColor.Light()"></NetcodeHubBreadCrumb>
+		<div class="row bg-success py-2 mt-3" style="border-radius:20px">
+			<div style="padding-bottom:6px;">
+				<button class="btn btn-outline-success float-end" @onclick="CreateProductBtnClicked" style="margin-top:2px;">
+					<i class="mdi mdi-plus"></i> Create New Product
+				</button>
+				<div style="background-color:white;height:40px;border-radius:10px;padding-top:10px;">
+					<i class="bi bi-printer text-success ms-2" title="Print" id="cursorStyle"
+					   @onclick="PrintTable"> Print</i> 
+					<i class="bi bi-file-earmark-pdf text-danger ms-2" title="Export to PDF" id="cursorStyle"
+					   @onclick="ExportToPdf"> Export To Pdf</i>
+				</div>
+			</div>
+			<div class="col-lg-12 col-sm-12 col-md-12">
+
+				<div class="card border-1 shadow-lg mb-2">
+					<div class="card-header">
+						
+						<div class="input-group mb-2" >
+							<span class="input-group-text bg-white border-end-0" >
+								<i class="bi bi-search text-muted"></i>
+							</span>
+							<input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search by name, S/N..." class="form-control border-start-0" style="border-radius:20px;margin-left:-12px;" />
+							<div class="col-md-3">
+								<select class="form-select" @bind="selectedCategoryId">
+									<option value="">All Categories</option>
+									@foreach (var cat in Categories)
+									{
+										<option value="@cat.Id">@cat.Name</option>
+									}
+								</select>
+							</div>
+							<div class="col-md-3">
+								<select class="form-select" @bind="selectedLocationId">
+									<option value="">All Locations</option>
+									@foreach (var loc in Locations)
+									{
+										<option value="@loc.Id">@loc.Name</option>
+									}
+								</select>
+							</div>
+						</div>
+					</div>
+
+					<!-- Make table responsive -->
+					<div class="card-body table-responsive" id="productTableToExport">
+												
+						<NetcodeHubDataGrid ContentBGColor="@NetcodeHub.Packages.Components.DataGrid.Color.Primary()"
+											HeaderFont="@Font.TimesNewRoman()"
+											HeaderSize="@NetcodeHub.Packages.Components.DataGrid.Size.Large()"
+											ContentFont="@Font.Georgia()"
+											DataGridFormat="@DataGridFormat.Striped()"
+											HeaderBGColor="@NetcodeHub.Packages.Components.DataGrid.Color.Danger()">
+							<HeaderTemplate>
+								<tr>
+									<th>Photo</th>
+									<th>Date</th>
+									<th>Name</th>
+									<th>SNo</th>
+									<th>Price</th>
+									@* <th>Qty</th> *@
+									<th>Qty Available</th>
+									<th>Category</th>
+									<th>Location</th>
+									<th>Description</th>
+									<th>Action</th>									
+								</tr>
+							</HeaderTemplate>
+
+							<ContentTemplate>
+								@if (Products == null)
+								{
+									<tr>
+										<td colspan="10" class="text-center mb-2">
+											<span>No data found</span>
+										</td>
+									</tr>
+								}
+								else
+								{
+									var listData = FilteredProducts.Skip(SkipValue).Take(TakeValue).ToList();
+									int sn = 1;
+									@foreach (var item in listData)
+									{
+										<tr>
+											<td>
+												<img src="@(item.Base64Image)" alt="@item.Name" width="70" height="50" class="img-thumbnail" />
+											</td>
+											<td>@item.DateAdded.ToShortDateString()</td>
+											<td>@item.Name</td>
+											<td>@item.SerialNumber</td>
+											<td>@item.Price</td>
+											@* <td>@item.Quantity</td> *@
+											<td>@item.QuantityLeft</td>
+											<td>@item.Category.Name</td>
+											<td>@item.Location.Name</td>
+											<td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+												@item.Description
+											</td>
+											<td>
+												<i class="bi bi-pencil text-info" title="Edit" id="cursorStyle"
+												   @onclick="() => EditClicked(item)"></i>
+												<i class="bi bi-info-circle text-primary ms-2" title="Details" id="cursorStyle"
+												   @onclick="() => ViewDetails(item.Id)"></i>
+												<i class="bi bi-trash text-danger ms-2" title="Delete" id="cursorStyle"
+												   @onclick="() => DeleteClicked(item)"></i>
+												
+											</td>
+										</tr>
+										sn++;
+									}
+								}
+
+								@if (Loading)
+								{
+									<tr>
+										<td colspan="10" class="text-center mb-2">
+											<div class="spinner-border text-primary" role="status">
+												<span class="visually-hidden">Processing...</span>
+											</div>
+										</td>
+									</tr>
+								}
+							</ContentTemplate>
+						</NetcodeHubDataGrid>
+					</div>
+
+					<div class="card-footer">
+						<SfPager @ref="@Page" PageSize="10" NumericItemsCount="4" TotalItemsCount="Products.Count()" ItemClick="Click" />
+					</div>
+				</div>
+			</div>
+		</div>
+	</Col12Template>
+	<FooterTemplate><Footer /></FooterTemplate>
+</TwoSectionsTemplate>
+<Confirmation Action="Confirm" BoostrapClass="bg-white shadow-lg border-1 card-header" @ref="confirmation" Instruction="Are you sure you want to delete? Delete action cannot be undone!" CustomStyle="position:absolute;top:50%;left:40%;" />
+<NetcodeHubToast @ref="ToastComponent" />
+
+<Modal @bind-Open="IsOpen" BootstrapClass="border-success rounded p-2 ml-2" CustomStyle="position:relative; left:40vw;right:40w; top:0vh">
+	<ContentContent>
+		<div class="card border-1 shadow-sm">
+			<div class="card-header">
+				<span class="text-center text-success fw-bold">@ModalTitle</span>
+				<i class="mdi mdi-close text-success fw-bold float-end fs-4 cursorStyle" @onclick="CloseModal"></i>
+			</div>
+			<div class="card-body">
+				<EditForm Model="ProductModel" OnValidSubmit="SaveProduct">
+					<DataAnnotationsValidator />
+					<div class="form-group">
+						<FloatingText Label="Product Name" @bind-Value="ProductModel.Name" class="form-control" />
+					</div>
+					<div class="form-group mt-3">
+						<FloatingText Label="Serial Number" @bind-Value="ProductModel.SerialNumber" class="form-control" />
+					</div>
+					<div class="form-group mt-3">
+						<label class="form-label" style="font-size:12px;">Product Price</label>
+						<InputNumber @bind-Value="ProductModel.Price" class="form-control" />
+					</div>
+					<div class="form-group mt-3">
+						@* <label class="form=label">Product Quantity</label> *@
+						<FloatingNumber Label="Product Quantity" @bind-Value="ProductModel.Quantity" class="form-control" />
+					</div>
+					<div class="form-group">
+						<FloatingText Label="Description" @bind-Value="ProductModel.Description" class="form-control" />
+					</div>
+					<div class="form-group">
+						<NetcodeHubFileUpload @ref="FileUploadComponent" Notify="RetrieveContent" RequiredExtensions="RequiredEx" />
+					</div>
+					<div class="form-group" style="margin-top:-50px;">
+						<label class="form-label" style="font-size:12px;">Select Category</label>
+						<select class="form-select mb-3" @bind="ProductModel.CategoryId">
+							<option disable value="@Guid.Empty" style="color:darkgray;font-size:12px; ">Select Category</option>
+							@foreach (var cat in Categories)
+							{
+								<option value="@cat.Id">@cat.Name</option>
+							}
+						</select>
+					</div>
+					<div class="form-group mt-0">
+						<label class="form-label" style="font-size:12px;">Select Location</label>
+						<select class="form-select mb-3" @bind="ProductModel.LocationId">
+							<option disable value="@Guid.Empty" style="color:darkgray;font-size:12px;">Select Location</option>
+							@foreach (var loc in Locations)
+							{
+								<option value="@loc.Id">@loc.Name</option>
+							}
+						</select>
+					</div>
+					<div class="form-group mb-3">
+						@if (Loading)
+						{
+							<GenericSpinnerButton Text="Saving..." ButtonClass="btn btn-success" />
+						}
+						else
+						{
+							<button type="submit" class="btn btn-success float-end">Save</button>
+						}
+					</div>
+					<ValidationSummary />
+				</EditForm>
+			</div>
+		</div>
+
+	</ContentContent>
+</Modal>
+
+<style>
+	#cursorStyle {
+		cursor: pointer;
+	}
+</style>
+
+
+@code {
+	private Dictionary<string, string> BreadCrumbs = new Dictionary<string, string>
+	{
+	  {"Home","app/home"},
+	  {"Manage Products",null!}
+	};
+	string ModalTitle = "Create New Product";
+	SfPager? Page;
+	NetcodeHubToast? ToastComponent;
+	public bool Loading { get; set; } = false;
+	public bool IsOpen { get; set; }
+	Confirmation? confirmation;
+	public int SkipValue;
+	public int TakeValue = 10;
+	[CascadingParameter] public Task<AuthenticationState>? UserAuthState { get; set; }
+	private IEnumerable<GetProductsWithQuantityLeftResponseDTO> Products { get; set; } = [];
+	//private IEnumerable<GetProductResponseDTO> Pros { get; set; } = [];
+	private AddProductRequestDTO ProductModel { get; set; } = new();
+	private IEnumerable<GetCategoryResponseDTO> Categories { get; set; } = [];
+	private IEnumerable<GetLocationResponseDTO> Locations { get; set; } = [];
+
+	ClaimsPrincipal? User;
+	private HubConnection? hubConnection;
+	bool CanDelete = false;
+
+	List<string> RequiredEx = [".jpg", "png"];
+	NetcodeHubFileUpload? FileUploadComponent;
+
+
+	protected async override Task OnInitializedAsync()
+	{
+		User = (await UserAuthState!).User;
+		CanDelete = customAuthorizationService.CustomClaimChecker(User, DefaultClaims.Delete);
+		homeGenericState.StateChanged += StateButtonClicked;
+		await GetProducts();
+		await GetCategories();
+		await GetLocations();
+
+		hubConnection = netcodeHubConnectionService.GetHubConnection();
+		hubConnection.On<string>("Notify", async (clientId) =>
+		{
+			await CallWhenNotified();
+		});
+		if (hubConnection == null)
+			await hubConnection!.StartAsync();
+	}
+
+	async Task CallWhenNotified()
+	{
+		await InvokeAsync(async () =>
+		{
+			StateHasChanged();
+			await adminActiveOrderCountState.GetActiveOrdersCount();
+		});
+	}
+
+
+	// Navigate to order pages when state buttons are clicked
+	void StateButtonClicked()
+	{
+		string adminOrderUrl = "app/administration/products/orders";
+		if (homeGenericState.IsAdmin)
+			navManager.NavigateTo($"{adminOrderUrl}/{homeGenericState.StateName}");
+	}
+
+	// Get Products
+	async Task GetProducts()
+	{
+		Loading = true;
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		Products = await mediator.Send(new GetProductsWithQuantityLeftQuery());
+		Loading = false;
+	}
+	// Get Categories
+	async Task GetCategories()
+	{
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		var result = await mediator.Send(new GetAllCategoriesQuery());
+		Categories = result;
+	}
+
+	// Get Locations
+	async Task GetLocations()
+	{
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		var result = await mediator.Send(new GetAllLocationsQuery());
+		Locations = result;
+	}
+
+	private GetProductResponseDTO SelectedProduct { get; set; } = new();
+	public void RowSelectHandler(RowSelectEventArgs<GetProductResponseDTO> args) => SelectedProduct = args.Data;
+
+	// void CategorySelectionChanged(Microsoft.AspNetCore.Components.ChangeEventArgs e) => ProductModel.CategoryId = Guid.Parse(e.Value!.ToString()!);
+	// void LocationSelectionChanged(Microsoft.AspNetCore.Components.ChangeEventArgs e) => ProductModel.LocationId = Guid.Parse(e.Value!.ToString()!);
+		
+
+	void OpenModal() => IsOpen = true;
+
+	void CreateProductBtnClicked()
+	{
+		ModalTitle = "Create New Product"; // set modal title
+		ProductModel = new();              // resets all input-bound fields
+		IdHolder = Guid.Empty;             // makes sure SaveProduct knows it's a create			
+		OpenModal();                       // opens the modal
+	}
+
+	void CloseModal()
+	{
+		ProductModel = new();
+		IdHolder = Guid.Empty;
+		IsOpen = false;
+	}
+
+	public Guid IdHolder { get; set; } = Guid.Empty;
+	async Task SaveProduct()
+	{
+		Loading = true;
+		await Task.Delay(2000);
+		ServiceResponse response = new(false, null!);
+		if (IdHolder != Guid.Empty)
+		{
+			var update = ProductModel.Adapt(new UpdateProductRequestDTO());
+			update.Id = IdHolder;  // Set the ID here
+
+			using var scope = serviceProvider.CreateScope();
+			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+			response = await mediator.Send(new UpdateProductCommand(update));
+			await accountService.SaveActivityAsync(new ActivityTrackerRequestDTO()
+				{
+					UserId = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value.ToString(),
+					Title = "Update Product method called",
+					Description = response.Message,
+					OperationState = response.Flag,
+					Date = DateTime.Now.Date
+				});
+		}
+		else
+		{
+			using var scope = serviceProvider.CreateScope();
+			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+			response = await mediator.Send(new CreateProductCommand(ProductModel));
+			await accountService.SaveActivityAsync(new ActivityTrackerRequestDTO()
+				{
+					UserId = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value.ToString(),
+					Title = "Create Product method called",
+					Description = response.Message,
+					OperationState = response.Flag,
+					Date = DateTime.Now.Date
+				});
+		}
+		if (response.Flag)
+		{
+			await GetProducts();
+			await ToastComponent!.ShowSuccessToast("Info", response.Message);
+			ProductModel = new();
+			CloseModal();
+		}
+		else
+		{
+			await ToastComponent!.ShowErrorToast("Alert", response.Message);
+		}
+		Loading = false;
+	}
+
+	public void Click(PagerItemClickEventArgs args)
+	{
+		SkipValue = (args.CurrentPage * Page!.PageSize) - Page.PageSize;
+		TakeValue = Page.PageSize;
+	}
+
+	void EditClicked(GetProductsWithQuantityLeftResponseDTO product)
+	{
+		ModalTitle = "Update Product";
+		IdHolder = product.Id;
+		product.Adapt(ProductModel);
+		OpenModal();
+	}
+
+	void DeleteClicked(GetProductsWithQuantityLeftResponseDTO product)
+	{
+		IdHolder = product.Id;
+		product.Adapt(ProductModel);
+		confirmation?.Show();
+	}
+
+	void ViewDetails(Guid id)
+	{
+		navManager.NavigateTo($"/app/products/details/{id}");
+	}
+
+	async Task Confirm()
+	{
+		Loading = true;
+		await Task.Delay(2000);
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		var result = await mediator.Send(new DeleteProductCommand(IdHolder));
+		await accountService.SaveActivityAsync(new ActivityTrackerRequestDTO()
+			{
+				UserId = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value.ToString(),
+				Title = "Delete Product method called",
+				Description = result.Message,
+				OperationState = result.Flag,
+				Date = DateTime.Now.Date
+			});
+		if (result.Flag)
+		{
+			await GetProducts();
+			await ToastComponent!.ShowSuccessToast("Info", result.Message);
+			ProductModel = new();
+			IdHolder = Guid.Empty;
+		}
+		else
+		{
+			await ToastComponent!.ShowErrorToast("Alert", result.Message);
+		}
+		Loading = false;
+	}
+
+	void RetrieveContent(FileModel? incomingFile)
+	{
+		if (incomingFile is null) return;
+		foreach (var file in incomingFile!.IBrowserFiles!)
+		{
+			var getFileNameAndBase4 = incomingFile.BaseFiles!.FirstOrDefault(_ => _.Key.Equals(file.Name, StringComparison.OrdinalIgnoreCase));
+			if (getFileNameAndBase4.Key != null)
+				ProductModel.Base64Image = getFileNameAndBase4.Value;
+		}
+	}
+
+	//Export to PDF
+	async Task ExportToPdf()
+	{
+		await js.InvokeVoidAsync("printToPdf", "productTableToExport", "ProductList.pdf");
+	}
+
+	//Print page
+	async Task PrintTable()
+	{
+		await js.InvokeVoidAsync("printPage", "productTableToExport");
+	}
+
+
+	//Search
+	private string searchTerm = "";
+	private string selectedCategoryId = "";
+	private string selectedLocationId = "";
+
+	private IEnumerable<GetProductsWithQuantityLeftResponseDTO> FilteredProducts =>
+		Products.Where(p =>
+			(string.IsNullOrWhiteSpace(searchTerm) ||
+				p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+				p.SerialNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+			&& (string.IsNullOrEmpty(selectedCategoryId) || p.CategoryId.ToString() == selectedCategoryId)
+			&& (string.IsNullOrEmpty(selectedLocationId) || p.LocationId.ToString() == selectedLocationId));
+
+	public void Dispose() => homeGenericState.StateChanged -= StateButtonClicked;
+}

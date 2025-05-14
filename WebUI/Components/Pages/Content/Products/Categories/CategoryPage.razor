@@ -1,0 +1,301 @@
+﻿@page "/app/products/category/manage"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdministrationPolicy")]
+@implements IDisposable
+<PageTitle>Categories</PageTitle>
+
+
+<TwoSectionsTemplate>
+	<Col12Template>
+		<AdminHomeHeader />
+		<NetcodeHubBreadCrumb BreadCrumbs="BreadCrumbs" BackgroundColor="@BreadCrumbBackgroundColor.Success()" DeactivatedColor="@BreadCrumbColor.Primary()" ActivatedColor="@BreadCrumbColor.Light()"></NetcodeHubBreadCrumb>
+		<div class="row bg-success py-2 mt-3" style="border-radius:20px">
+			<div style="padding-bottom:6px;">
+				<button class="btn btn-outline-primary float-end" @onclick="CreateCategoryBtnClicked" style="margin-top:2px;">
+					<i class="mdi mdi-plus"></i> Create New Location
+				</button>
+			</div>
+			<div class="col-lg-12 col-sm-12 col-md-12">
+
+				<div class="card border-1 shadow-lg mb-2">
+
+					<!-- Make table responsive -->
+					<div class="card-body table-responsive" id="productTableToExport">
+
+						<NetcodeHubDataGrid ContentBGColor="@NetcodeHub.Packages.Components.DataGrid.Color.Primary()"
+											HeaderFont="@Font.TimesNewRoman()"
+											HeaderSize="@NetcodeHub.Packages.Components.DataGrid.Size.Large()"
+											ContentFont="@Font.Georgia()"
+											DataGridFormat="@DataGridFormat.Striped()"
+											HeaderBGColor="@NetcodeHub.Packages.Components.DataGrid.Color.Danger()">
+							<HeaderTemplate>
+								<tr>
+									<th>Serial No</th>
+									<th>ID</th>
+									<th>NAME</th>
+									<th>ACTION</th>
+								</tr>
+							</HeaderTemplate>
+
+							<ContentTemplate>
+								@if (Categories == null)
+								{
+									<tr>
+										<td colspan="10" class="text-center mb-2">
+											<span>No data found</span>
+										</td>
+									</tr>
+								}
+								else
+								{
+									var listData = Categories.Skip(SkipValue).Take(TakeValue).ToList();
+									int sn = 1;
+									@foreach (var item in listData)
+									{
+										<tr>
+											<td>@sn</td>
+											<td id="td1_@item.Id">@item.Id</td>
+											<td id="td2_@item.Id">@item.Name</td>
+											<td>
+												<i class="bi bi-pencil text-info" title="Edit" id="cursorStyle"
+												   @onclick="() => EditClicked(item)"></i>
+												<i class="bi bi-trash text-danger ms-2" title="Delete" id="cursorStyle"
+												   @onclick="() => DeleteClicked(item)"></i>
+											</td>
+										</tr>
+										sn++;
+									}
+								}
+
+								@if (Loading)
+								{
+									<tr>
+										<td colspan="10" class="text-center mb-2">
+											<div class="spinner-border text-primary" role="status">
+												<span class="visually-hidden">Processing...</span>
+											</div>
+										</td>
+									</tr>
+								}
+							</ContentTemplate>
+						</NetcodeHubDataGrid>
+					</div>
+				</div>
+			</div>
+		</div>
+	</Col12Template>
+	<FooterTemplate><Footer /></FooterTemplate>
+</TwoSectionsTemplate>
+<Confirmation Action="Confirm" BoostrapClass="bg-white shadow-lg border-1 card-header" @ref="confirmation" Instruction="Are you sure you want to delete? Delete action cannot be undone!" CustomStyle="position:absolute;top:50%;left:40%;" />
+<NetcodeHubToast @ref="ToastComponent" />
+
+<Modal @bind-Open="IsOpen" BootstrapClass="border-success rounded p-2 ml-2" CustomStyle="position:relative; left:40vw;right:40w; top:30vh">
+	<ContentContent>
+		<div class="card border-1 shadow-sm">
+             <div class="card-header">                            
+                <span class="text-center text-success fw-bold">@ModalTitle</span>
+                <i class="mdi mdi-close text-success fw-bold float-end fs-4 cursorStyle" @onclick="CloseModal"></i>
+             </div>
+			 <div class="card-body">
+                <EditForm Model="CategoryModel" OnValidSubmit="SaveCategory" >
+                     <DataAnnotationsValidator />
+                     <div class="form-group">
+                         <FloatingText Label="Category Name" @bind-Value="CategoryModel.Name" class="form-control" />
+                     </div>
+					<div class="form-group mb-3">
+						@if (Loading)
+						{
+							<GenericSpinnerButton Text="Saving..." ButtonClass="btn btn-success" />
+						}
+						else
+						{
+							<button type="submit" class="btn btn-success float-end">Save</button>
+						}						
+					</div>
+					<ValidationSummary />
+				</EditForm>
+			</div>
+		</div>
+
+	</ContentContent>
+</Modal>
+
+@code {
+	private Dictionary<string, string> BreadCrumbs = new Dictionary<string, string>
+	{
+	  {"Home","app/home"},
+	  {"Manage Categories",null!}
+	};
+	string ModalTitle = "Create New Category";
+	SfPager? Page;
+	NetcodeHubToast? ToastComponent;
+	public bool Loading { get; set; } = false;
+	
+	public bool IsOpen { get; set; }
+	Confirmation? confirmation;
+	public int SkipValue;
+	public int TakeValue = 10;
+	[CascadingParameter] public Task<AuthenticationState>? UserAuthState { get; set; }
+	private IEnumerable<GetCategoryResponseDTO> Categories { get; set; } = [];
+	//private IEnumerable<GetProductResponseDTO> Pros { get; set; } = [];		
+	private AddCategoryRequestDTO CategoryModel { get; set; } = new();
+	ClaimsPrincipal? User;
+	private HubConnection? hubConnection;
+	bool CanDelete = false;
+
+	protected async override Task OnInitializedAsync()
+	{
+		User = (await UserAuthState!).User;
+		CanDelete = customAuthorizationService.CustomClaimChecker(User, DefaultClaims.Delete);
+		homeGenericState.StateChanged += StateButtonClicked;
+		await GetCategories();
+
+		hubConnection = netcodeHubConnectionService.GetHubConnection();
+		hubConnection.On<string>("Notify", async (clientId) =>
+		{
+			await CallWhenNotified();
+		});
+		if (hubConnection == null)
+			await hubConnection!.StartAsync();
+	}
+
+	async Task CallWhenNotified()
+	{
+		await InvokeAsync(async () =>
+		{
+			StateHasChanged();
+			await adminActiveOrderCountState.GetActiveOrdersCount();
+		});
+	}
+
+	// Navigate to order pages when state buttons are clicked
+	void StateButtonClicked()
+	{
+		string adminOrderUrl = "app/administration/products/orders";
+		if (homeGenericState.IsAdmin)
+			navManager.NavigateTo($"{adminOrderUrl}/{homeGenericState.StateName}");
+	}
+
+	// Get Categories
+	async Task GetCategories()
+	{
+		Loading = true;
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		Categories = await mediator.Send(new GetAllCategoriesQuery());
+		Loading = false;
+	}
+
+	void OpenModal() => IsOpen = true;
+	void CreateCategoryBtnClicked()
+	{
+		ModalTitle = "Create New Category";		
+		OpenModal();
+	}
+
+	void CloseModal() => IsOpen = false;
+
+	public Guid IdHolder { get; set; } = Guid.Empty;
+	async Task SaveCategory()
+	{
+		Loading = true;
+		await Task.Delay(2000);
+		ServiceResponse response = new(false, null!);
+		if (IdHolder != Guid.Empty)
+		{
+			var update = CategoryModel.Adapt(new UpdateCategoryRequestDTO());			
+			using var scope = serviceProvider.CreateScope();
+			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+			response = await mediator.Send(new UpdateCategoryCommand(update));
+			await accountService.SaveActivityAsync(new ActivityTrackerRequestDTO()
+				{
+					UserId = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value.ToString(),
+					Title = "Update Category method called",
+					Description = response.Message,
+					OperationState = response.Flag,
+					Date = DateTime.Now.Date
+				});
+			// Loading = false;
+			// StateHasChanged();
+		}
+		else
+		{
+			using var scope = serviceProvider.CreateScope();
+			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+			response = await mediator.Send(new CreateCategoryCommand(CategoryModel));
+			await accountService.SaveActivityAsync(new ActivityTrackerRequestDTO()
+				{
+					UserId = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value.ToString(),
+					Title = "Create Category method called",
+					Description = response.Message,
+					OperationState = response.Flag,
+					Date = DateTime.Now.Date
+				});
+		}
+		if (response.Flag)
+		{
+			CloseModal();
+			await GetCategories();			
+			await ToastComponent!.ShowSuccessToast("Info", response.Message);
+			CategoryModel = new();			
+		}
+		else
+		{
+			await ToastComponent!.ShowErrorToast("Alert", response.Message);
+		}
+		Loading = false;
+	}
+
+
+	public void Click(PagerItemClickEventArgs args)
+	{
+		SkipValue = (args.CurrentPage * Page!.PageSize) - Page.PageSize;
+		TakeValue = Page.PageSize;
+	}
+
+	void EditClicked(GetCategoryResponseDTO category)
+	{
+		ModalTitle = "Update Category";
+		IdHolder = category.Id;
+		category.Adapt(CategoryModel);
+		OpenModal();
+	}
+
+	void DeleteClicked(GetCategoryResponseDTO category)
+	{
+		IdHolder = category.Id;
+		category.Adapt(CategoryModel);
+		confirmation?.Show();
+	}
+
+	async Task Confirm()
+	{
+		Loading = true;
+		await Task.Delay(2000);
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		var result = await mediator.Send(new DeleteCategoryCommand(IdHolder));
+		await accountService.SaveActivityAsync(new ActivityTrackerRequestDTO()
+		{
+				UserId = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value.ToString(),
+				Title = "Delete Category method called",
+				Description = result.Message,
+				OperationState = result.Flag,
+				Date = DateTime.Now.Date
+		});
+		if (result.Flag)
+		{			
+			await GetCategories();			
+			await ToastComponent!.ShowSuccessToast("Info", result.Message);
+			CategoryModel = new();
+			IdHolder = Guid.Empty;
+		}
+		else
+		{
+			await ToastComponent!.ShowErrorToast("Alert", result.Message);
+		}
+		Loading = false;
+	}
+
+	public void Dispose() => homeGenericState.StateChanged -= StateButtonClicked;
+}

@@ -1,0 +1,111 @@
+﻿@attribute [StreamRendering]
+@using Syncfusion.Blazor.Charts
+
+<div class="row" style="height:85vh;" >
+
+
+	<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+		<div class="card shadow-lg border-1">
+			<div class="card-body" >
+				@if(ProductOrderByMonthsResponseDTOs.Count() == 0)
+				{
+					<HomeSkeletonLoader />
+				}
+				else
+				{
+					<SfChart Title="Product Orders Display Analysis" Palettes="@chart1" >
+						<ChartPrimaryYAxis LabelFormat="c" Title="Total Amount in US Dollar" />
+						<ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category" Title="Amount Within 12 Months" ></ChartPrimaryXAxis>
+						<ChartTooltipSettings Enable="true"></ChartTooltipSettings>
+						<ChartLegendSettings Visible="true" ></ChartLegendSettings>
+						<ChartSeriesCollection>
+							<ChartSeries DataSource="@ProductOrderByMonthsResponseDTOs" XName="MonthName" YName="TotalAmount" Type="ChartSeriesType.Column" >
+								<ChartMarker  >
+									<ChartDataLabel Visible="true"></ChartDataLabel>
+								</ChartMarker>
+							</ChartSeries>
+						</ChartSeriesCollection>
+					</SfChart>
+
+				}
+			</div>
+		</div>
+	</div>
+
+	<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+		<div class="card shadow-lg border-1">
+			<div class="card-body">
+				@if (ProductOrderedWithQuantityResponseDTOs.Count() == 0)
+				{
+					<HomeSkeletonLoader />
+				}
+				else
+				{
+					<SfChart Title="Product Orders Display Analysis" Palettes="@chart2">
+						<ChartPrimaryYAxis LabelFormat="" Title="Total Products Ordered" />
+						<ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category" Title="Products Ordered Within 12 Months"></ChartPrimaryXAxis>
+						<ChartTooltipSettings Enable="true"></ChartTooltipSettings>
+						<ChartLegendSettings Visible="true"></ChartLegendSettings>
+						<ChartSeriesCollection>
+							<ChartSeries DataSource="@ProductOrderedWithQuantityResponseDTOs" XName="ProductName" YName="QuantityOrdered" Type="ChartSeriesType.Column">
+								<ChartMarker>
+									<ChartDataLabel Visible="true"></ChartDataLabel>
+								</ChartMarker>
+							</ChartSeries>
+						</ChartSeriesCollection>
+					</SfChart>
+
+				}
+			</div>
+		</div>
+	</div>
+
+</div>
+
+@code {
+
+	public String[] chart1 = new String[] { "#F6B53F" };
+	public String[] chart2 = new String[] { "#00CCCD" };
+	private IEnumerable<GetProductOrderedByMonthsResponseDTO> ProductOrderByMonthsResponseDTOs { get; set; } = [];
+	private IEnumerable<GetOrderedProductsWithQuantityResponseDTO> ProductOrderedWithQuantityResponseDTOs { get; set; } = [];
+
+	[CascadingParameter] public Task<AuthenticationState>? AuthenticationState { get; set; }
+	ClaimsPrincipal? User;
+	private string Role = string.Empty;
+	private string UserId = string.Empty;
+
+	protected async override Task OnInitializedAsync()
+	{
+		User = (await AuthenticationState!).User;
+		if(User != null)
+		{
+			Role = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)!.Value;
+			UserId = User!.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value;
+			await GetChartData1();
+			await GetChartData2();
+		}
+	}
+
+	async Task GetChartData1()
+	{
+		await Task.Delay(3000);
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		if (Role.Equals("Admin"))
+			ProductOrderByMonthsResponseDTOs = (await mediator.Send(new GetProductOrderedByMonthsQuery(null!)));
+		else
+			ProductOrderByMonthsResponseDTOs = (await mediator.Send(new GetProductOrderedByMonthsQuery(UserId)));
+	}
+	
+	async Task GetChartData2()
+	{
+		await Task.Delay(3000);
+		using var scope = serviceProvider.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		if (Role.Equals("Admin"))
+			ProductOrderedWithQuantityResponseDTOs = (await mediator.Send(new GetOrderedProductsWithQuantityQuery(null!)));
+		else
+			ProductOrderedWithQuantityResponseDTOs = (await mediator.Send(new GetOrderedProductsWithQuantityQuery(UserId)));
+	}
+
+}

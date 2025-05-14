@@ -1,0 +1,98 @@
+﻿@page "/Account/Login"
+@using WebUI.Components.Layout.Identity
+@layout AuthenticationLayout
+
+<EditForm Model="LoginModel" method="post" OnValidSubmit="LoginAsync" FormName="login" Enhance style="background-color:darkslategrey;opacity:0.8">
+    <div class="card border-primary shadow-lg text-dark p-5" style="border-radius:24px; min-width:300px;">
+        <div class="card-header text-dark fs-4 border-primary">Login</div>
+        <div class=" text-center LoginPix"></div>
+        <div class="card-body" ></div>
+        <DataAnnotationsValidator />
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="LoginModel.Email" class="form-control border-primary textBoxBorder" autocomplete />
+            <label for="email" class="form-label">Email Address</label>
+        </div>
+        <div class="form-floating mb-3">
+            <InputText type="Password" @bind-Value="LoginModel.Password" class="form-control border-primary textBoxBorder" />
+            <label for="email" class="form-label">User Password</label>
+        </div>
+        <div class="form-group align-content-end">
+            <button class="float-end btn btn-primary mt-4 w-50" type="submit" style="border-radius:20px;">Login</button>
+        </div>
+        <hr class="text-primary"/>
+    </div>
+    <div class="card-footer mt-5">
+        @if(ErrorMessage != "")
+        {
+            <div class="alert alert-danger"> 
+                @ErrorMessage
+            </div>
+        }
+        else
+        {
+            <ValidationSummary class="form-control text-danger text-decoration-none" />
+        }
+    </div>
+</EditForm>
+
+<style>
+    body {
+        background-image: url(../images/background/Login.jpg);
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+
+    .LoginPix {
+         width: 130px;
+        height: 130px;
+        margin-left: 30px;
+        margin-top: 30px; 
+        background-image: url(../images/background/USER99.png);
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+    .textBoxBorder{
+       border-radius:10px;
+        opacity: 1;
+    }
+</style>
+
+@code {
+    string ErrorMessage = "";
+    public bool IsBusy { get; set; } = false;
+
+    [SupplyParameterFromForm]
+    private LoginUserRequestDTO LoginModel { get; set; } = new();
+
+    private async Task LoginAsync()
+    {
+        if (IsBusy) return;
+        ErrorMessage = "";
+        IsBusy = true;
+        var response = await accountService.LoginAsync(LoginModel);
+        if(!response.Flag)
+        {
+            IsBusy = false;
+            ErrorMessage = response.Message;
+            return;
+        }
+        IsBusy = false;
+        navManager.NavigateTo(uri: "app/home",true);
+    }
+
+    [CascadingParameter]
+    public Task <AuthenticationState>? ClientAuthState { get; set; }
+
+    protected override async Task  OnInitializedAsync()
+    {
+        try
+        {
+            if ((await ClientAuthState!).User.Identity!.IsAuthenticated == true)
+                navManager.NavigateTo("app/home", false, true);
+        }
+        catch
+        {
+
+        }
+    }
+}

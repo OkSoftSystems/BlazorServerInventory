@@ -1,0 +1,20 @@
+﻿@page "/redirect-to-login"
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider authStateProvider
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity is not null && authState.User.Identity.IsAuthenticated)
+        {
+            // User is authenticated but doesn't have access -> show access denied
+            navManager.NavigateTo("/access-denied", true);
+        }
+        else
+        {
+            // User is not authenticated -> redirect to login
+            navManager.NavigateTo("/Account/Login", true);
+        }
+    }
+}

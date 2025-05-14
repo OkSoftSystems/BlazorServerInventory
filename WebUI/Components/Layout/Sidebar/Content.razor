@@ -1,0 +1,120 @@
+﻿@* <div class="sideNavBackground"> *@
+	<AuthorizeView Policy="AdministrationPolicy">
+		@if (CanManageUser)
+		{
+			<div ></div>
+			<!-- User Management -->
+			<li class="nav-item" style="margin-top:50px;">
+				<a class="nav-link" data-toggle="collapse" href="#expand-user" aria-expanded="false" aria-controls="ui-basic">
+					<i class="mdi mdi-account-settings menu-icon fs-4"></i>
+					<span class="menu-title">System Users & Clients</span>
+					<i class="menu-arrow"></i>
+				</a>
+				<div class="collapse" id="expand-user">
+					<ul class="nav flex-column sub-menu">
+						<li class="nav-item">
+							<a class="nav-link" href="javascript:nv('administration/account/create-user')">New User</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="javascript:nv('administration/account/users/manage')">Manage User</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="javascript:nv('administration/account/user-management-activity-log')">Checking Activity Logs</a>
+						</li>
+					</ul>
+				</div>
+			</li>
+		}
+
+		<!-- Product Management -->
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="collapse" href="#expand-product" aria-expanded="false" aria-controls="ui-basic">
+				<i class="mdi mdi-cube menu-icon fs-4"></i>
+				<span class="menu-title">Managing Products</span>
+				<i class="menu-arrow"></i>
+			</a>
+			<div class="collapse" id="expand-product">
+			<ul class="nav flex-column sub-menu">				
+					<li class="nav-item">
+					<a class="nav-link" href="javascript:nv('app/products/all-products-with-quantity-left/manage',1500)">Products in Stock</a>
+					</li>
+				@* <li class="nav-item">
+					<a class="nav-link" href="javascript:nv('app/products/all-products/manage',1500)">Products</a>
+				</li> *@
+					<li class="nav-item">
+						<a class="nav-link" href="javascript:nv('app/products/category/manage',700)">Categories</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="javascript:nv('app/products/location/manage',700)">Locations</a>
+					</li>
+					@* <li class="nav-item">
+						<a class="nav-link" href="javascript:nv('app/products/manage',1500)">Products Display</a>
+					</li> *@
+				</ul>
+			</div>
+		</li>
+
+		<!-- Order Management -->
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="collapse" href="#expand-orders" aria-expanded="false" aria-controls="ui-basic">
+				<i class="mdi mdi-cart menu-icon fs-4"></i>
+				<span class="menu-title">Managing Orders</span>
+				<i class="menu-arrow"></i>
+			</a>
+			<div class="collapse" id="expand-orders">
+				<ul class="nav flex-column sub-menu">
+				<li class="" style="margin-left:5px;">					
+						<a class="nav-link" href="javascript:nv('app/administration/products/orders',2000)">
+							<i class="mdi mdi-cube-unfolded menu-icon"></i>
+							<span class="menu-title">Orders</span>
+						</a>
+					</li>
+				</ul>
+			</div>
+		</li>
+	</AuthorizeView>
+	<AuthorizeView Policy="@Policy.UserPolicy">
+		@* Client Orders *@
+	<li class="" style="margin-top:70px;margin-left:30px;">
+		<a class="nav-link" href="javascript:nv('app/products/orders-with-quantity-left',2000)">
+			<i class="mdi mdi-cube-unfolded menu-icon"></i>
+				<span class="menu-title">My Product Orders</span>
+			</a>
+	</li>
+	</AuthorizeView>
+	<AuthorizeView>
+	<MudBlazor.MudDivider Class="mt-5" />
+	<li class="nav-item sidebar-actions">
+		<div nav-link">
+			<div>
+				<div class="border-none">
+					<p class="text-black">System Info</p>
+				</div>
+				<ul class="mt-4 pl-0">
+					<li>
+						<a>Version 1.0.0</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</li>
+</AuthorizeView>
+@* </div> *@
+
+<style>
+	.sideNavBackground {
+		background-image: url(../images/sideNavBackground.jpg);
+		background-repeat: no-repeat;
+		background-size: cover;
+	}
+</style>
+
+@code {
+
+	[CascadingParameter] public Task<AuthenticationState>? myState { get; set; }
+	bool CanManageUser = false;
+	protected async override Task OnInitializedAsync()
+	{
+		CanManageUser = customAuthorizationService.CustomClaimChecker((await myState!).User, DefaultClaims.ManageUser);
+	}
+}

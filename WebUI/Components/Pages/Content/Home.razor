@@ -1,0 +1,69 @@
+﻿@page "/app/home"
+@rendermode InteractiveServer
+@implements IDisposable
+@attribute [Authorize]
+
+<PageTitle>Home</PageTitle>
+
+
+<HomeTeplate ActivateFooterTemplate="true"
+ActivateHomeSection1Col9Template="true" ActivateHomeSection1Col3Template="true" ActivateHomeHeaderTemplate="true">
+	<HomeHeaderTemplate>
+		<AuthorizeView Policy="AdministrationPolicy">
+			<AdminHomeHeader />			
+		</AuthorizeView>
+
+		<AuthorizeView Policy="@Policy.UserPolicy">
+			<ClientHomeHeader />
+		</AuthorizeView>
+	</HomeHeaderTemplate>
+	
+	<HomeSection1Col9Template>
+		<HomePageGraph />		
+	</HomeSection1Col9Template>
+
+	<HomeSection1Col3Template><Banner /></HomeSection1Col3Template>
+
+	<FooterTemplate><Footer /></FooterTemplate>
+</HomeTeplate>
+
+
+@code {
+
+	[CascadingParameter] public Task<AuthenticationState>? UserAuthState { get; set; }
+	private HubConnection? hubConnection;
+
+	protected async override Task OnInitializedAsync()
+	{
+		homeGenericState.StateChanged += StateButtonClicked;
+		hubConnection = netcodeHubConnectionService.GetHubConnection();
+		hubConnection.On<string>("Notify", async (clientId) =>
+		{
+			await CallWhenNotified();
+		});
+		if (hubConnection == null)
+			await hubConnection!.StartAsync();
+	}
+
+	async Task CallWhenNotified()
+	{
+		await InvokeAsync(async () =>
+		{
+			StateHasChanged();
+			await adminActiveOrderCountState.GetActiveOrdersCount();
+		});
+	}
+
+	void StateButtonClicked()
+	{
+		string adminOrderUrl = "app/administration/products/orders";
+		string clientOrderUrl = "app/products/orders";
+		if (!homeGenericState.IsAdmin)
+			navManager.NavigateTo($"{clientOrderUrl}/{homeGenericState.StateName}");
+		else
+			navManager.NavigateTo($"{adminOrderUrl}/{homeGenericState.StateName}");
+	}
+
+	public void Dispose() => homeGenericState.StateChanged -= StateButtonClicked;
+
+}

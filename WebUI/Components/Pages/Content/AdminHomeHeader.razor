@@ -1,0 +1,65 @@
+﻿@rendermode InteractiveServer
+@implements IDisposable
+
+<div class="page-header flex-wrap BannerBackground BannerBox" style="margin-top:0rem">
+	<h3 class="mb-0" style="color:darksalmon; margin-left:10px;">
+		 Welcome Admin! <span class="pl-0 h6 pl-sm-2 text-muted d-inline-block!" style="color:white">Your Inventory System Dashboard</span>
+	</h3>
+	<div class="d-flex">
+		<button type="button" class="btn btn-sm btn-warning btn-icon-text border-1 position-relative ml-5" 
+		@onclick="(()=>homeGenericState.GetProcessingOrderButtonClicked(OrderState.Processing, true))">
+			<i class="mdi mdi-sync btn-icon-prepend"></i> Processing
+			<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning">
+				@adminActiveOrderCountState.ProcessingCount
+				<span class="visually-hidden">Unread messages</span>
+			</span>
+		</button>
+
+		<button type="button" class="btn btn-sm btn-primary btn-icon-text border-1 position-relative ml-5"
+				@onclick="(()=>homeGenericState.GetProcessingOrderButtonClicked(OrderState.Delivering, true))">
+			<i class="mdi mdi-swim btn-icon-prepend"></i> Delivering
+			<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+				@adminActiveOrderCountState.DeliveringCount
+				<span class="visually-hidden">Unread messages</span>
+			</span>
+		</button>
+		<button type="button" class="btn btn-sm btn-success btn-icon-text border-1 position-relative ml-5"
+				@onclick="(()=>homeGenericState.GetProcessingOrderButtonClicked(OrderState.Delivered, true))">
+			<i class="mdi mdi-swim btn-icon-prepend"></i> Delivered
+			<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+				@adminActiveOrderCountState.DeliveredCount
+				<span class="visually-hidden">Unread messages</span>
+			</span>
+		</button>
+		<button type="button" class="btn btn-sm btn-danger btn-icon-text border-1 position-relative ml-5"
+				@onclick="(()=>homeGenericState.GetProcessingOrderButtonClicked(OrderState.Canceled, true))">
+			<i class="mdi mdi-sync btn-icon-prepend"></i> Canceled
+			<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+				@adminActiveOrderCountState.CanceledCount
+				<span class="visually-hidden">Unread messages</span>
+			</span>
+		</button>
+	</div>
+</div>
+
+<style>
+	.BannerBackground {
+		background-image: url(../images/brandBackground.jpg);
+		background-repeat: no-repeat;
+		background-size: cover;
+	}
+	.BannerBox{
+		height:80px;
+		border-radius:20px;
+	}
+</style>
+
+@code {
+	public int Count { get; set; }
+	protected override async Task OnInitializedAsync()
+	{
+		adminActiveOrderCountState.StateChanged += StateHasChanged;
+		await adminActiveOrderCountState.GetActiveOrdersCount();
+	}
+	public void Dispose() => adminActiveOrderCountState.StateChanged -= StateHasChanged;
+}

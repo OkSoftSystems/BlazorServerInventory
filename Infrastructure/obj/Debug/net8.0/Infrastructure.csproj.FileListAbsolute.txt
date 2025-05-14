@@ -1,0 +1,17 @@
+C:\Projects\BlazorServerInventory\Infrastructure\bin\Debug\net8.0\Infrastructure.deps.json
+C:\Projects\BlazorServerInventory\Infrastructure\bin\Debug\net8.0\Infrastructure.dll
+C:\Projects\BlazorServerInventory\Infrastructure\bin\Debug\net8.0\Infrastructure.pdb
+C:\Projects\BlazorServerInventory\Infrastructure\bin\Debug\net8.0\Application.dll
+C:\Projects\BlazorServerInventory\Infrastructure\bin\Debug\net8.0\Domain.dll
+C:\Projects\BlazorServerInventory\Infrastructure\bin\Debug\net8.0\Application.pdb
+C:\Projects\BlazorServerInventory\Infrastructure\bin\Debug\net8.0\Domain.pdb
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastructure.csproj.AssemblyReference.cache
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastructure.AssemblyInfoInputs.cache
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastructure.AssemblyInfo.cs
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastructure.csproj.CoreCompileInputs.cache
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastr.15EFFBFE.Up2Date
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastructure.dll
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\refint\Infrastructure.dll
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\Infrastructure.pdb
+C:\Projects\BlazorServerInventory\Infrastructure\obj\Debug\net8.0\ref\Infrastructure.dll

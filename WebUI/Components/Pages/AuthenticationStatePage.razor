@@ -1,0 +1,40 @@
+﻿@page "/"
+@using Application.Service.Identity
+
+
+@code {
+	[CascadingParameter]
+	public Task<AuthenticationState>? ClientAuthState{ get; set; }
+	protected override async Task OnInitializedAsync()
+	{
+		try
+		{
+			await accountService.SetUpAsync();
+			if ((await ClientAuthState!).User.Identity!.IsAuthenticated == true)
+				navManager.NavigateTo("app/home", false, true);
+			else
+				navManager.NavigateTo("Account/login", false, true);
+		}
+		catch
+		{
+			navManager.NavigateTo("Account/login", false, true);
+		}
+		// try
+		// {
+		// 	await accountService.SetUpAsync();
+		// 	if (ClientAuthState is not null && (await ClientAuthState).User.Identity?.IsAuthenticated == true)
+		// 	{
+		// 		navManager.NavigateTo("app/home", false, true);
+		// 	}
+		// 	else
+		// 	{
+		// 		navManager.NavigateTo("Account/Login", false, true);
+		// 	}
+		// }
+		// catch (Exception ex)
+		// {
+		// 	Console.WriteLine($"Error in AuthenticationStatePage: {ex.Message}");
+		// 	navManager.NavigateTo("Account/Login", false, true);
+		// }
+	}
+}
